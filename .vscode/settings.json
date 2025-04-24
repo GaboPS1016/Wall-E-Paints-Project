@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Wall-E Paint.sln"
+    "dotnet.defaultSolution": "Wall-E-Paints-Project.sln"
 }
