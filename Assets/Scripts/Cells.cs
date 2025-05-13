@@ -1,20 +1,9 @@
-using UnityEngine;
-
-namespace CellsName
+public class Cells
 {
-    public class Cells : ScriptableObject
+    public CellColor color { get; set; }
+    public Cells()
     {
-        public float height {get; set;}
-        public float width {get; set;}
-        public CellColor color {get; set;}
-        public enum CellColor { White, Black, Blue, Red, Yellow, Green, Purple, Orange, Transparent };
-        public Cells()
-        {
-            height = 1;
-            width = 1;
-            color = CellColor.White;
-        }
+        color = CellColor.White;
     }
 }
-
-
+public enum CellColor { White, Black, Blue, Red, Yellow, Green, Purple, Orange, Transparent };
