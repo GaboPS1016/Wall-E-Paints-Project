@@ -1,14 +1,388 @@
 using UnityEngine;
-
+using System;
+using System.Collections.Generic;
 public class Parser
 {
-    void Start()
+    public static int line;
+    public static bool ismethod = false;
+    public static bool posiblevar = false;
+    public static List<string> Parsing(string text)
     {
-        
-    }
+        List<string> tokens = new List<string>();
+        string auxstr = "";
+        line = 1;
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '\n') line++;
+            //deleting spaces
+            if (text[i] == ' ' || text[i] == '\t' || text[i] == '\n')
+            {
+                if (ismethod) continue;
+                if (auxstr != "")
+                {
+                    tokens.Add(auxstr);
+                    auxstr = "";
+                }
+                continue;
+            }
+            //strings between []
+            if (text[i] == '[')
+            {
+                while (text[i] != ']')
+                {
+                    auxstr += text[i];
+                    i++;
+                }
+                auxstr += text[i];
+                tokens.Add(auxstr);
+                auxstr = "";
+                continue;
+            }
+            //strings between ()
+            if (text[i] == '(')
+            {
+                if (ismethod) auxstr += '(';
+                int contParenthesis = 0;
+                i++;
+                while (text[i] != ')' || contParenthesis != 0)
+                {
+                    if (text[i] == '(')
+                    {
+                        auxstr += text[i];
+                        i++;
+                        contParenthesis++;
+                        continue;
+                    }
+                    if (text[i] == ')')
+                    {
+                        auxstr += text[i];
+                        i++;
+                        contParenthesis--;
+                        continue;
+                    }
+                    if (text[i] == ' ' || text[i] == '\t')
+                    {
+                        i++;
+                        continue;
+                    }
+                    if (text[i] == '"')
+                    {
+                        i++;
+                        while (text[i] != '"')
+                        {
+                            auxstr += text[i];
+                            i++;
+                        }
+                        i++;
+                        continue;
+                    }
+                    auxstr += text[i];
+                    i++;
+                }
+                if (ismethod) auxstr += ')';
+                ismethod = false;
+                if (auxstr != "") tokens.Add(auxstr);
+                auxstr = "";
 
-    void Update()
+                continue;
+            }
+            //end of text
+            char nextchar = ' ';
+            if (i != text.Length - 1) nextchar = text[i + 1];
+            //particular case || and &&
+            if ((text[i] == '&' && nextchar == '&') || (text[i] == '|' && nextchar == '|'))
+            {
+                tokens.Add(auxstr);
+                auxstr = "";
+                tokens.Add(Char.ToString(text[i]) + text[i]);
+                i++;
+                continue;
+            }
+
+            auxstr += text[i];
+
+            //variable declaration
+            if (auxstr == "<-")
+            {
+                tokens.Add(auxstr);
+                auxstr = "";
+                i++;
+                while (i < text.Length && text[i] != '\n')
+                {
+                    if (text[i] == ' ' || text[i] == '\t')
+                    {
+                        i++;
+                        continue;
+                    }
+                    auxstr += text[i];
+                    i++;
+                }
+                tokens.Add(auxstr);
+                auxstr = "";
+                i++;
+                continue;
+            }
+            //method
+            if (Interpreter.IsMethod(auxstr))
+            {
+                ismethod = true;
+                continue;
+            }
+            //dictionary of tokens
+            if (Comparation(auxstr, nextchar))
+            {
+                tokens.Add(auxstr);
+                posiblevar = false;
+                auxstr = "";
+            }
+        }
+        if (auxstr != "") tokens.Add(auxstr);
+        return tokens;
+    }
+    public static List<string> MethodParsing(string text)
     {
+        List<string> tokens = new List<string>();
+        string auxstr = "";
         
+        for (int i = 0; i < text.Length; i++)
+        {
+            //copy the name method
+            if (i == 0)
+            {
+                for (int j = 0; j < text.Length; j++)
+                {
+                    if (text[j] == ' ' || text[j] == '(')
+                    {
+                        tokens.Add(auxstr);
+                        auxstr = "";
+                        break;
+                    }
+                    auxstr += text[i];
+                    i++;
+                }
+            }            
+            //deleting spaces
+                if (text[i] == ' ' || text[i] == '\t' || text[i] == '\n' || text[i] == ',')
+                {
+                    if (auxstr != "")
+                    {
+                        tokens.Add(auxstr);
+                        auxstr = "";
+                    }
+                    continue;
+                }
+            //strings between ()
+            if (text[i] == '(')
+            {
+                int contParenthesis = 0;
+                i++;
+                while (text[i] != ')' || contParenthesis != 0)
+                {
+                    if (text[i] == '(')
+                    {
+                        auxstr += text[i];
+                        i++;
+                        contParenthesis++;
+                        continue;
+                    }
+                    if (text[i] == ')')
+                    {
+                        auxstr += text[i];
+                        i++;
+                        contParenthesis--;
+                        continue;
+                    }
+                    if (text[i] == ' ' || text[i] == '\t')
+                    {
+                        i++;
+                        continue;
+                    }
+                    if (text[i] == '"')
+                    {
+                        auxstr = "";
+                        i++;
+                        while (text[i] != '"')
+                        {
+                            auxstr += text[i];
+                            i++;
+                        }
+                        i++;
+                        continue;
+                    }
+                    if (text[i] == ',')
+                    {
+                        if (contParenthesis != 0) Console.WriteLine("ERROR, INCOMPLETE PARENTHESIS!!!!  line " + line);
+                        tokens.Add(auxstr);
+                        auxstr = "";
+                        i++;
+                        continue;
+                    }
+                    auxstr += text[i];
+                    i++;
+                }
+                if (auxstr != "") tokens.Add(auxstr);
+                auxstr = "";
+                continue;
+            }
+            auxstr += text[i];
+        }
+        return tokens;
+    }
+    public static List<string> BoolParsing(string token)
+    {
+        List<string> toks = new List<string> ();
+        int deep = 0;
+        string auxstr = "";
+        if (token[0] == '&' || token[0] == '|')
+        {
+            Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
+            Interpreter.error = true;
+            return toks;
+        }
+        for (int i = 0; i < token.Length; i++)
+        {
+            if (token[i] == '(')
+            {
+                deep++;
+                auxstr += token[i];
+                continue;
+            }
+            if (token[i] == ')')
+            {
+                deep--;
+                auxstr += token[i];
+                continue;
+            }
+            if (i >= token.Length - 2 && (token[i] == '&' || token[i] == '|'))
+            {
+                Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
+                Interpreter.error = true;
+                return toks;
+            }
+            if (((token[i] == '&' && token[i + 1] == '&') || (token[i] == '|' && token[i + 1] == '|')) && deep == 0)
+            {
+                if (auxstr != "") toks.Add(auxstr);
+                auxstr = "";
+                toks.Add(Char.ToString(token[i]) + token[i + 1]);
+                i++;
+                continue;
+            }
+            auxstr += token[i];
+        }
+        //last token
+        if(auxstr != "") toks.Add(auxstr);
+        return toks;
+    }
+    public static List<string> PredicateParsing(string token)
+    {
+        List<string> toks = new List<string> ();
+        int deep = 0;
+        string auxstr = "";
+        if (token[0] == '>' || token[0] == '<' || token[0] == '=' || token[0] == '!')
+        {
+            Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
+            Interpreter.error = true;
+            return toks;
+        }
+        for (int i = 0; i < token.Length; i++)
+        {
+            if (token[i] == '(')
+            {
+                deep++;
+                auxstr += token[i];
+                continue;
+            }
+            if (token[i] == ')')
+            {
+                deep--;
+                auxstr += token[i];
+                continue;
+            }
+            if (token[token.Length - 1] == '>' || token[token.Length - 1] == '<' || token[token.Length - 1] == '=')
+            {
+                Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
+                Interpreter.error = true;
+                return toks;
+            }
+            if ((token[i] == '<' || token[i] == '>' || token[i] == '=' || (token[i] == '!' && token[i+1] == '=')) && deep == 0)
+            {
+                if (auxstr != "") toks.Add(auxstr);
+                if (token[i + 1] == '=')
+                {
+                    toks.Add(Char.ToString(token[i]) + token[i + 1]);
+                    i++;
+                }
+                else
+                {
+                    toks.Add(Char.ToString(token[i]));
+                }
+                auxstr = "";
+                continue;
+            }
+            auxstr += token[i];
+        }
+        //last token
+        if(auxstr != "") toks.Add(auxstr);
+        return toks;
+    }
+    public static bool Comparation(string auxstr, char nextchar)
+    {
+        //functions
+        if (nextchar == ' ' || nextchar == '(')
+        {
+            if (Enum.IsDefined(typeof(Method), auxstr)) return true;
+        }
+        if ((nextchar == ' ' || nextchar == '[') && auxstr == "GoTo") return true;
+
+        //numbers
+        if (int.TryParse(auxstr, out int num) && !posiblevar)
+        {
+            if (int.TryParse(nextchar.ToString(), out int numm)) return false;
+            else return true;
+        }
+
+        //colors
+        if (Enum.IsDefined(typeof(CellColor), auxstr) && Comparation(Convert.ToString(nextchar), ' ')) return true;
+
+        //operators
+        if (auxstr == "+" ||
+            auxstr == "-" ||
+           (auxstr == "*" && nextchar != '*') ||
+            auxstr == "/" ||
+            auxstr == "%") return true;
+
+
+        //logic operators
+        if (auxstr == "<" ||
+            auxstr == ">" ||
+            auxstr == "=" ||
+            auxstr == "<-" ||
+            auxstr == "==" ||
+            auxstr == "!=" ||
+            auxstr == "<=" ||
+            auxstr == ">=" ||
+            auxstr == "&&" ||
+            auxstr == "||")
+        {
+            if (auxstr == "<" && nextchar == '-') return false;
+            if (nextchar == '=') return false;
+            return true;
+        }
+        if (auxstr == "!" && nextchar == '=') return false;
+        //booleans
+        if ((auxstr == "true" || auxstr == "false") && !(Char.IsLetterOrDigit(nextchar) || nextchar == '_')) return true;
+        //another cases
+        if (auxstr == ")" || auxstr == "(") return true;
+        //variables
+        if (posiblevar)
+        {
+            posiblevar = false;
+            return false;
+        }
+        posiblevar = true;
+        if (Comparation(Convert.ToString(nextchar), ' ')) return true;
+        posiblevar = false;
+        //is nothing
+        return false;
     }
 }

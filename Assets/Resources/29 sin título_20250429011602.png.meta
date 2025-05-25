@@ -116,12 +116,12 @@ TextureImporter:
       name: "29 sin t\xEDtulo_20250429011602_0"
       rect:
         serializedVersion: 2
-        x: 152
-        y: 115
-        width: 1435
-        height: 1595
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+        x: 0
+        y: 182
+        width: 1700
+        height: 1638
+      alignment: 1
+      pivot: {x: 0, y: 1}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
