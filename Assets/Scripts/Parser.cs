@@ -1,12 +1,13 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-public class Parser
+public class Parser : MonoBehaviour
 {
-    public static int line;
-    public static bool ismethod = false;
-    public static bool posiblevar = false;
-    public static List<string> Parsing(string text)
+    public Interpreter interpreter;
+    public  int line;
+    public  bool ismethod = false;
+    public  bool posiblevar = false;
+    public List<string> Parsing(string text)
     {
         List<string> tokens = new List<string>();
         string auxstr = "";
@@ -119,11 +120,10 @@ public class Parser
                 }
                 tokens.Add(auxstr);
                 auxstr = "";
-                i++;
                 continue;
             }
             //method
-            if (Interpreter.IsMethod(auxstr))
+            if (interpreter.IsMethod(auxstr))
             {
                 ismethod = true;
                 continue;
@@ -139,7 +139,7 @@ public class Parser
         if (auxstr != "") tokens.Add(auxstr);
         return tokens;
     }
-    public static List<string> MethodParsing(string text)
+    public  List<string> MethodParsing(string text)
     {
         List<string> tokens = new List<string>();
         string auxstr = "";
@@ -228,7 +228,7 @@ public class Parser
         }
         return tokens;
     }
-    public static List<string> BoolParsing(string token)
+    public  List<string> BoolParsing(string token)
     {
         List<string> toks = new List<string> ();
         int deep = 0;
@@ -236,7 +236,7 @@ public class Parser
         if (token[0] == '&' || token[0] == '|')
         {
             Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
-            Interpreter.error = true;
+            interpreter.error = true;
             return toks;
         }
         for (int i = 0; i < token.Length; i++)
@@ -256,7 +256,7 @@ public class Parser
             if (i >= token.Length - 2 && (token[i] == '&' || token[i] == '|'))
             {
                 Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
-                Interpreter.error = true;
+                interpreter.error = true;
                 return toks;
             }
             if (((token[i] == '&' && token[i + 1] == '&') || (token[i] == '|' && token[i + 1] == '|')) && deep == 0)
@@ -273,7 +273,7 @@ public class Parser
         if(auxstr != "") toks.Add(auxstr);
         return toks;
     }
-    public static List<string> PredicateParsing(string token)
+    public  List<string> PredicateParsing(string token)
     {
         List<string> toks = new List<string> ();
         int deep = 0;
@@ -281,7 +281,7 @@ public class Parser
         if (token[0] == '>' || token[0] == '<' || token[0] == '=' || token[0] == '!')
         {
             Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
-            Interpreter.error = true;
+            interpreter.error = true;
             return toks;
         }
         for (int i = 0; i < token.Length; i++)
@@ -301,7 +301,7 @@ public class Parser
             if (token[token.Length - 1] == '>' || token[token.Length - 1] == '<' || token[token.Length - 1] == '=')
             {
                 Console.WriteLine("ERROR!!!! INCORRECT BOOLEAN EXPRESSION line " + line);
-                Interpreter.error = true;
+                interpreter.error = true;
                 return toks;
             }
             if ((token[i] == '<' || token[i] == '>' || token[i] == '=' || (token[i] == '!' && token[i+1] == '=')) && deep == 0)
@@ -325,7 +325,7 @@ public class Parser
         if(auxstr != "") toks.Add(auxstr);
         return toks;
     }
-    public static bool Comparation(string auxstr, char nextchar)
+    public  bool Comparation(string auxstr, char nextchar)
     {
         //functions
         if (nextchar == ' ' || nextchar == '(')

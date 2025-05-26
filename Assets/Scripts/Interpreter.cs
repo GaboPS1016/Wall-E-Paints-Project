@@ -5,16 +5,17 @@ using TMPro;
 
 public class Interpreter : MonoBehaviour
 {
-    public static TMP_Text log;
-    public static bool error = false;
-    public static List<string> LogicOperators = new List<string> { "<", ">", "<=", ">=", "==", "!=", "&&", "||", "true", "false" };
-    public static Dictionary<string, int> numVars = new Dictionary<string, int>();
-    public static Dictionary<string, bool> boolVars = new Dictionary<string, bool>();
-    public static void MainInterpreter(List<string> tokens)
+    public  bool error = false;
+    public Parser parser;
+    public Methods methods;
+    public List<string> LogicOperators = new List<string> { "<", ">", "<=", ">=", "==", "!=", "&&", "||", "true", "false" };
+    public  Dictionary<string, int> numVars = new Dictionary<string, int>();
+    public  Dictionary<string, bool> boolVars = new Dictionary<string, bool>();
+    public void MainInterpreter(List<string> tokens)
     {
         tokenInterpreter(tokens, 0);
     }
-    public static void tokenInterpreter(List<string> tokens, int index)
+    public void tokenInterpreter(List<string> tokens, int index)
     {
         if (index >= tokens.Count) return;
         if (error) return;
@@ -22,14 +23,14 @@ public class Interpreter : MonoBehaviour
         //instructions, no functions
         if (IsMethod(tokens[index]) && !IsFunction(tokens[index]))
         {
-            List<string> methodlist = Parser.MethodParsing(tokens[index]);
+            List<string> methodlist = parser.MethodParsing(tokens[index]);
             Enum.TryParse(methodlist[0], out Method method);
-            int numParameters = Methods.ParametersDictionary[method];
+            int numParameters = methods.ParametersDictionary[method];
             List<int> parameters = new List<int>();
 
             if (numParameters != methodlist.Count - 1)
             {
-                log.text = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
+                MainScript.logText = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
                 return;
             }
             string colorstr = "";
@@ -43,9 +44,10 @@ public class Interpreter : MonoBehaviour
                     parameters.Add(DoingOperation(methodlist[i]));
                 }
             }
-
+            if (error) return;
             //execute the method
-            Methods.DoAction(method, parameters, colorstr);
+            methods.DoAction(method, parameters, colorstr);
+            if (error) return;
             //next token
             try
             {
@@ -59,7 +61,7 @@ public class Interpreter : MonoBehaviour
         //functions
         else if (IsFunction(tokens[index]))
         {
-            log.text = "ERROR!!!! FUNCTION NOT ASSIGNED TO A VARIABLE";
+            MainScript.logText = "ERROR!!!! FUNCTION NOT ASSIGNED TO A VARIABLE";
             return;
         }
         //variable declaration
@@ -67,7 +69,7 @@ public class Interpreter : MonoBehaviour
         {
             if (!IsValidVariableName(tokens[index - 1]))
             {
-                log.text = "ERROR!!!! INCORRECT VARIABLE NAME";
+                MainScript.logText = "ERROR!!!! INCORRECT VARIABLE NAME";
                 error = true;
                 return;
             }
@@ -87,6 +89,7 @@ public class Interpreter : MonoBehaviour
                 else numVars.Add(tokens[index - 1], DoingOperation(tokens[index + 1]));
                 boolVars.Remove(tokens[index - 1]);
             }
+            if (error) return;
             //next token
             try
             {
@@ -102,7 +105,7 @@ public class Interpreter : MonoBehaviour
         {
             if (tokens[index + 1][0] != '[' || !IsBool(tokens[index + 2]))
             {
-                log.text = "ERROR!!!! INCORRECT LOOP SINTAXIS";
+                MainScript.logText = "ERROR!!!! INCORRECT LOOP SINTAXIS";
                 error = true;
                 return;
             }
@@ -113,7 +116,7 @@ public class Interpreter : MonoBehaviour
                 int target = Find(tokens, label);
                 if (target == -1)
                 {
-                    log.text = "ERROR!!!! LABEL \"" + tokens[index + 1] + "\" NOT FOUND";
+                    MainScript.logText = "ERROR!!!! LABEL \"" + label + "\" NOT FOUND";
                     error = true;
                     return;
                 }
@@ -124,6 +127,7 @@ public class Interpreter : MonoBehaviour
             }
             else
             {
+                if (error) return;
                 try
                 {
                     tokenInterpreter(tokens, index + 3);
@@ -134,9 +138,11 @@ public class Interpreter : MonoBehaviour
                 }
             }
         }
+        if (error) return;
         //next token
         else
         {
+            if (error) return;
             try
             {
                 tokenInterpreter(tokens, index + 1);
@@ -147,14 +153,29 @@ public class Interpreter : MonoBehaviour
             }
         }
     }
-    public static int DoingOperation(string token)
+    public  int DoingOperation(string token)
     {
-        List<string> toks = Parser.Parsing(token);
+        List<string> toks = parser.Parsing(token);
         List<int> numtoks = new List<int>();
         List<string> signtoks = new List<string>();
         bool firstnegative = false;
 
-        if (toks.Count == 1 && int.TryParse(toks[0], out int singlenum)) return singlenum;
+        if (IsBool(token))
+        {
+            MainScript.logText = "ERROR!!!! THE OPERATION IS BOOLEAN, CAN'T OPERATE";
+            error = true;
+            return 0;
+        }
+        if (toks.Count == 1)
+        {
+            if (toks[0][0] == '(')
+            {
+                string inntok = toks[0].Substring(1, toks[0].Length - 2);
+                return DoingOperation(inntok);
+            }
+            else if (int.TryParse(toks[0], out int singlenum)) return singlenum;
+            else toks = parser.Parsing(toks[0]);
+        }    
         //first num negative?
         if (toks[0] == "-")
         {
@@ -190,14 +211,16 @@ public class Interpreter : MonoBehaviour
                 //is a boolean variable
                 else if (boolVars.ContainsKey(toks[i]))
                 {
-                    log.text = "ERROR!!!! THE VARIABLE \"" + toks[i] + "\" IS BOOLEAN";
+                    MainScript.logText = "ERROR!!!! THE VARIABLE \"" + toks[i] + "\" IS BOOLEAN";
                     error = true;
                     return 0;
                 }
+                //expression without spaces
+                else if (parser.Parsing(toks[i]).Count > 1) numtoks.Add(DoingOperation(toks[i]));
                 //doesnt exist
                 else
                 {
-                    log.text = "ERROR!!!! \"" + toks[i] + "\" DOES NOT EXIST";
+                    MainScript.logText = "ERROR!!!! \"" + toks[i] + "\" DOES NOT EXIST";
                     error = true;
                     return 0;
                 }
@@ -215,7 +238,7 @@ public class Interpreter : MonoBehaviour
         }
         return Operate(numtoks, signtoks);
     }
-    public static int Operate(List<int> nums, List<string> signs)
+    public  int Operate(List<int> nums, List<string> signs)
     {
         for (int i = 0; i < signs.Count; i++)
         {
@@ -240,7 +263,7 @@ public class Interpreter : MonoBehaviour
                 case "/":
                     if (nums[i + 1] == 0)
                     {
-                        log.text = "ERROR!!! DIVISION BY ZERO!!!";
+                        MainScript.logText = "ERROR!!! DIVISION BY ZERO!!!";
                         error = true;
                         return 1;
                     }
@@ -280,10 +303,10 @@ public class Interpreter : MonoBehaviour
         }
         return nums[0];
     }
-    public static bool DoingBoolean(string token)
+    public  bool DoingBoolean(string token)
     {
         //recursive method to operate ands and ors
-        List<string> toks = Parser.BoolParsing(token);
+        List<string> toks = parser.BoolParsing(token);
         List<string> boolsigns = new List<string>();
         List<bool> predicates = new List<bool>();
         //single tok
@@ -301,7 +324,7 @@ public class Interpreter : MonoBehaviour
             //num var
             else if (numVars.ContainsKey(toks[0]))
             {
-                log.text = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
+                MainScript.logText = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
                 error = true;
                 return false;
             }
@@ -310,14 +333,14 @@ public class Interpreter : MonoBehaviour
             //nothing
             else
             {
-                log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
+                MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
                 error = true;
                 return false;
             }
         }
         for (int i = 0; i < toks.Count; i++)
         {
-            log.text = toks[i];
+            MainScript.logText = toks[i];
             //predicates
             if (i % 2 == 0)
             {
@@ -330,13 +353,13 @@ public class Interpreter : MonoBehaviour
                 //is a num variable
                 else if (numVars.ContainsKey(toks[i]))
                 {
-                    log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, CANT OPERATE NUM VARS WITH LOGIC OPERATORS";
+                    MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, CANT OPERATE NUM VARS WITH LOGIC OPERATORS";
                     error = true;
                     return false;
                 }
                 else
                 {
-                    log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[i] + " NOT EXISTS";
+                    MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[i] + " NOT EXISTS";
                     error = true;
                     return false;
                 }
@@ -349,9 +372,9 @@ public class Interpreter : MonoBehaviour
         }
         return OperateBooleans(predicates, boolsigns);
     }
-    public static bool DoingPredicates(string token)
+    public  bool DoingPredicates(string token)
     {
-        List<string> toks = Parser.PredicateParsing(token);
+        List<string> toks = parser.PredicateParsing(token);
         List<string> boolsigns = new List<string>();
         List<int> nums = new List<int>();
         //single tok
@@ -369,14 +392,14 @@ public class Interpreter : MonoBehaviour
             //num var
             else if (numVars.ContainsKey(toks[0]))
             {
-                log.text = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
+                MainScript.logText = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
                 error = true;
                 return false;
             }
             //nothing
             else
             {
-                log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
+                MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
                 error = true;
                 return false;
             }
@@ -389,7 +412,7 @@ public class Interpreter : MonoBehaviour
                 //expressions
                 if (IsBool(toks[i]))
                 {
-                    log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
+                    MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
                     error = true;
                     return false;
                 }
@@ -407,13 +430,13 @@ public class Interpreter : MonoBehaviour
         //only one operator
         if (boolsigns.Count > 1)
         {
-            log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, TOO MANY BOOL OPERATORS IN PREDICATE ";
+            MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, TOO MANY BOOL OPERATORS IN PREDICATE ";
             error = true;
             return false;
         }
         return OperatePredicates(nums, boolsigns[0]);
     }
-    public static bool OperateBooleans(List<bool> predicates, List<string> boolsigns)
+    public  bool OperateBooleans(List<bool> predicates, List<string> boolsigns)
     {
         for (int i = 0; i < boolsigns.Count; i++)
         {
@@ -437,7 +460,7 @@ public class Interpreter : MonoBehaviour
         }
         return predicates[0];
     }
-    public static bool OperatePredicates(List<int> nums, string boolsign)
+    public  bool OperatePredicates(List<int> nums, string boolsign)
     {
         //operating
         switch (boolsign)
@@ -455,21 +478,21 @@ public class Interpreter : MonoBehaviour
             case ">=":
                 return nums[0] >= nums[1];
             default:
-                log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
+                MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
                 error = true;
                 return false;
         }
     }
-    public static int FunctionCrafter(string token)
+    public  int FunctionCrafter(string token)
     {
-        List<string> function = Parser.MethodParsing(token);
+        List<string> function = parser.MethodParsing(token);
         Enum.TryParse(function[0], out Method method);
-        int numParameters = Methods.ParametersDictionary[method];
+        int numParameters = methods.ParametersDictionary[method];
         List<int> parameters = new List<int>();
         string colorstr = "";
         if (numParameters != function.Count - 1)
         {
-            log.text = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
+            MainScript.logText = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
             error = true;
             return 0;
         }
@@ -489,9 +512,9 @@ public class Interpreter : MonoBehaviour
                 parameters.Add(DoingOperation(function[i]));
             }
         }
-        return Methods.DoFunction(method, parameters, colorstr);
+        return methods.DoFunction(method, parameters, colorstr);
     }
-    public static bool IsMethod(string token)
+    public  bool IsMethod(string token)
     {
         string newtoken = "";
         for (int i = 0; i < token.Length; i++)
@@ -501,7 +524,7 @@ public class Interpreter : MonoBehaviour
         }
         return Enum.IsDefined(typeof(Method), newtoken);
     }
-    public static bool IsFunction(string token)
+    public  bool IsFunction(string token)
     {
         string newtoken = "";
         for (int i = 0; i < token.Length; i++)
@@ -515,15 +538,15 @@ public class Interpreter : MonoBehaviour
         }
         return false;
     }
-    public static bool IsVariableDeclaration(string token)
+    public  bool IsVariableDeclaration(string token)
     {
         return token == "<-";
     }
-    public static bool IsLoop(string token)
+    public bool IsLoop(string token)
     {
         return token == "GoTo";
     }
-    public static bool IsValidVariableName(string token)
+    public  bool IsValidVariableName(string token)
     {
         //return SyntaxFacts.IsValidIdentifier(token);
 
@@ -543,7 +566,7 @@ public class Interpreter : MonoBehaviour
             LogicOperators.Contains(token)) return false;
         return true;
     }
-    public static bool IsComplexBool(string token)
+    public  bool IsComplexBool(string token)
     {
         //has && or ||
         for (int i = 0; i < token.Length - 1; i++)
@@ -552,12 +575,12 @@ public class Interpreter : MonoBehaviour
         }
         return false;
     }
-    public static bool IsBool(string token)
+    public  bool IsBool(string token)
     {
         if (LogicOperators.Contains(token)) return true;
         if (boolVars.ContainsKey(token)) return true;
         if (token == "") return false;
-        List<string> toks = Parser.Parsing(token);
+        List<string> toks = parser.Parsing(token);
         if (toks.Count == 1)
         {
             if (toks[0][0] == '(')
@@ -572,7 +595,7 @@ public class Interpreter : MonoBehaviour
         }
         return false;
     }
-    public static int Find(List<string> tokens, string label)
+    public  int Find(List<string> tokens, string label)
     {
         for (int i = 0; i < tokens.Count; i++)
         {

@@ -4,7 +4,11 @@ using System.Collections.Generic;
 
 public class Methods : MonoBehaviour
 {
-    public static void DoAction(Method method, List<int> parameters, string colorstr)
+    public int spawnsCount;
+    public Interpreter interpreter;
+    public GameObject pointer;
+    public MainScript main;
+    public void DoAction(Method method, List<int> parameters, string colorstr)
     {
         switch (method)
         {
@@ -28,7 +32,7 @@ public class Methods : MonoBehaviour
                 break;
         }
     }
-    public static int DoFunction(Method method, List<int> parameters, string colorstr)
+    public  int DoFunction(Method method, List<int> parameters, string colorstr)
     {
         switch (method)
         {
@@ -49,63 +53,79 @@ public class Methods : MonoBehaviour
         }
         return 0;
     }
-    public static void Spawn(int x, int y)
+    public void Spawn(int x, int y)
     {
-        Console.WriteLine("Empezaste en " + x + ", " + y);
+        if (x > main.large || x < 0 || y > main.large || y < 0)
+        {
+            MainScript.logText = "ERROR!!!! SPAWN OUT OF CANVAS";
+            interpreter.error = true;
+            return;
+        }
+        spawnsCount++;
+        if (spawnsCount > 1)
+        {
+            MainScript.logText = "ERROR!!!! THERE CAN ONLY BE ONE SPAWN";
+            interpreter.error = true;
+            return;
+        }
+        MainScript.logText = "Empezaste en " + x + ", " + y + "\n";
+        MainScript.x = x;
+        MainScript.y = y;
+        pointer.transform.position = new Vector3(main.cellScale * x, -main.cellScale * y, 0);
     }
-    public static void Color(string color)
-    {
-
-    }
-    public static void Size(int x)
-    {
-
-    }
-    public static void DrawLine(int dirX, int dirY, int distance)
-    {
-
-    }
-    public static void DrawCircle(int dirX, int dirY, int radius)
-    {
-
-    }
-    public static void DrawRectangle(int dirX, int dirY, int distance, int width, int height)
-    {
-
-    }
-    public static void Fill()
+    public  void Color(string color)
     {
 
     }
-    public static int GetActualX()
+    public  void Size(int x)
+    {
+
+    }
+    public  void DrawLine(int dirX, int dirY, int distance)
+    {
+
+    }
+    public  void DrawCircle(int dirX, int dirY, int radius)
+    {
+
+    }
+    public  void DrawRectangle(int dirX, int dirY, int distance, int width, int height)
+    {
+
+    }
+    public  void Fill()
+    {
+
+    }
+    public  int GetActualX()
     {
         return 0;
     }
-    public static int GetActualY()
+    public  int GetActualY()
     {
         return 0;
     }
-    public static int GetCanvasSize()
+    public  int GetCanvasSize()
     {
         return 0;
     }
-    public static int GetColorCount(string color, int x1, int y1, int x2, int y2)
+    public  int GetColorCount(string color, int x1, int y1, int x2, int y2)
     {
         return 0;
     }
-    public static int IsBrushColor(string color)
+    public  int IsBrushColor(string color)
     {
         return 0;
     }
-    public static int IsBrushSize(int size)
+    public  int IsBrushSize(int size)
     {
         return 0;
     }
-    public static int IsCanvasColor(string color, int vertical, int horizontal)
+    public  int IsCanvasColor(string color, int vertical, int horizontal)
     {
         return 0;
     }
-    public static Dictionary<Method, int> ParametersDictionary = new()
+    public  Dictionary<Method, int> ParametersDictionary = new()
     {
         { Method.Spawn, 2},
         { Method.Color, 1},
