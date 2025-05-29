@@ -8,6 +8,7 @@ public class Interpreter : MonoBehaviour
     public  bool error = false;
     public Parser parser;
     public Methods methods;
+    public MainScript main; 
     public List<string> LogicOperators = new List<string> { "<", ">", "<=", ">=", "==", "!=", "&&", "||", "true", "false" };
     public  Dictionary<string, int> numVars = new Dictionary<string, int>();
     public  Dictionary<string, bool> boolVars = new Dictionary<string, bool>();
@@ -30,7 +31,7 @@ public class Interpreter : MonoBehaviour
 
             if (numParameters != methodlist.Count - 1)
             {
-                MainScript.logText = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
+                main.log.text = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
                 return;
             }
             string colorstr = "";
@@ -61,7 +62,7 @@ public class Interpreter : MonoBehaviour
         //functions
         else if (IsFunction(tokens[index]))
         {
-            MainScript.logText = "ERROR!!!! FUNCTION NOT ASSIGNED TO A VARIABLE";
+            main.log.text = "ERROR!!!! FUNCTION NOT ASSIGNED TO A VARIABLE";
             return;
         }
         //variable declaration
@@ -69,7 +70,7 @@ public class Interpreter : MonoBehaviour
         {
             if (!IsValidVariableName(tokens[index - 1]))
             {
-                MainScript.logText = "ERROR!!!! INCORRECT VARIABLE NAME";
+                main.log.text = "ERROR!!!! INCORRECT VARIABLE NAME";
                 error = true;
                 return;
             }
@@ -77,16 +78,20 @@ public class Interpreter : MonoBehaviour
             if (IsBool(tokens[index + 1]))
             {
                 //check if it exists
-                if (boolVars.ContainsKey(tokens[index - 1])) boolVars[tokens[index - 1]] = DoingBoolean(tokens[index + 1]);
-                else boolVars.Add(tokens[index - 1], DoingBoolean(tokens[index + 1]));
+                bool result = DoingBoolean(tokens[index + 1]);
+                if (error) return;
+                if (boolVars.ContainsKey(tokens[index - 1])) boolVars[tokens[index - 1]] = result;
+                else boolVars.Add(tokens[index - 1], result);
                 numVars.Remove(tokens[index - 1]);
             }
             //numeric var
             else
             {
                 //check if it exists
-                if (numVars.ContainsKey(tokens[index - 1])) numVars[tokens[index - 1]] = DoingOperation(tokens[index + 1]);
-                else numVars.Add(tokens[index - 1], DoingOperation(tokens[index + 1]));
+                int result = DoingOperation(tokens[index + 1]);
+                if (error) return;
+                if (numVars.ContainsKey(tokens[index - 1])) numVars[tokens[index - 1]] = result;
+                else numVars.Add(tokens[index - 1], result);
                 boolVars.Remove(tokens[index - 1]);
             }
             if (error) return;
@@ -105,7 +110,7 @@ public class Interpreter : MonoBehaviour
         {
             if (tokens[index + 1][0] != '[' || !IsBool(tokens[index + 2]))
             {
-                MainScript.logText = "ERROR!!!! INCORRECT LOOP SINTAXIS";
+                main.log.text = "ERROR!!!! INCORRECT LOOP SINTAXIS";
                 error = true;
                 return;
             }
@@ -116,7 +121,7 @@ public class Interpreter : MonoBehaviour
                 int target = Find(tokens, label);
                 if (target == -1)
                 {
-                    MainScript.logText = "ERROR!!!! LABEL \"" + label + "\" NOT FOUND";
+                    main.log.text = "ERROR!!!! LABEL \"" + label + "\" NOT FOUND";
                     error = true;
                     return;
                 }
@@ -162,7 +167,7 @@ public class Interpreter : MonoBehaviour
 
         if (IsBool(token))
         {
-            MainScript.logText = "ERROR!!!! THE OPERATION IS BOOLEAN, CAN'T OPERATE";
+            main.log.text = "ERROR!!!! THE OPERATION IS BOOLEAN, CAN'T OPERATE";
             error = true;
             return 0;
         }
@@ -211,7 +216,7 @@ public class Interpreter : MonoBehaviour
                 //is a boolean variable
                 else if (boolVars.ContainsKey(toks[i]))
                 {
-                    MainScript.logText = "ERROR!!!! THE VARIABLE \"" + toks[i] + "\" IS BOOLEAN";
+                    main.log.text = "ERROR!!!! THE VARIABLE \"" + toks[i] + "\" IS BOOLEAN";
                     error = true;
                     return 0;
                 }
@@ -220,7 +225,7 @@ public class Interpreter : MonoBehaviour
                 //doesnt exist
                 else
                 {
-                    MainScript.logText = "ERROR!!!! \"" + toks[i] + "\" DOES NOT EXIST";
+                    main.log.text = "ERROR!!!! \"" + toks[i] + "\" DOES NOT EXIST";
                     error = true;
                     return 0;
                 }
@@ -263,7 +268,7 @@ public class Interpreter : MonoBehaviour
                 case "/":
                     if (nums[i + 1] == 0)
                     {
-                        MainScript.logText = "ERROR!!! DIVISION BY ZERO!!!";
+                        main.log.text = "ERROR!!! DIVISION BY ZERO!!!";
                         error = true;
                         return 1;
                     }
@@ -324,7 +329,7 @@ public class Interpreter : MonoBehaviour
             //num var
             else if (numVars.ContainsKey(toks[0]))
             {
-                MainScript.logText = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
+                main.log.text = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
                 error = true;
                 return false;
             }
@@ -333,14 +338,14 @@ public class Interpreter : MonoBehaviour
             //nothing
             else
             {
-                MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
+                main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
                 error = true;
                 return false;
             }
         }
         for (int i = 0; i < toks.Count; i++)
         {
-            MainScript.logText = toks[i];
+            main.log.text = toks[i];
             //predicates
             if (i % 2 == 0)
             {
@@ -353,13 +358,13 @@ public class Interpreter : MonoBehaviour
                 //is a num variable
                 else if (numVars.ContainsKey(toks[i]))
                 {
-                    MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, CANT OPERATE NUM VARS WITH LOGIC OPERATORS";
+                    main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, CANT OPERATE NUM VARS WITH LOGIC OPERATORS";
                     error = true;
                     return false;
                 }
                 else
                 {
-                    MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[i] + " NOT EXISTS";
+                    main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[i] + " NOT EXISTS";
                     error = true;
                     return false;
                 }
@@ -392,14 +397,14 @@ public class Interpreter : MonoBehaviour
             //num var
             else if (numVars.ContainsKey(toks[0]))
             {
-                MainScript.logText = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
+                main.log.text = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
                 error = true;
                 return false;
             }
             //nothing
             else
             {
-                MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
+                main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION \""+ toks[0] +"\"";
                 error = true;
                 return false;
             }
@@ -412,7 +417,7 @@ public class Interpreter : MonoBehaviour
                 //expressions
                 if (IsBool(toks[i]))
                 {
-                    MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
+                    main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
                     error = true;
                     return false;
                 }
@@ -430,7 +435,7 @@ public class Interpreter : MonoBehaviour
         //only one operator
         if (boolsigns.Count > 1)
         {
-            MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, TOO MANY BOOL OPERATORS IN PREDICATE ";
+            main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, TOO MANY BOOL OPERATORS IN PREDICATE ";
             error = true;
             return false;
         }
@@ -478,7 +483,7 @@ public class Interpreter : MonoBehaviour
             case ">=":
                 return nums[0] >= nums[1];
             default:
-                MainScript.logText = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
+                main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
                 error = true;
                 return false;
         }
@@ -492,7 +497,7 @@ public class Interpreter : MonoBehaviour
         string colorstr = "";
         if (numParameters != function.Count - 1)
         {
-            MainScript.logText = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
+            main.log.text = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
             error = true;
             return 0;
         }

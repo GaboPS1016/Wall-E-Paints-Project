@@ -1,10 +1,11 @@
 using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 public class Methods : MonoBehaviour
 {
-    public int spawnsCount;
+    public int spawnsCount = 0;
     public Interpreter interpreter;
     public GameObject pointer;
     public MainScript main;
@@ -32,7 +33,7 @@ public class Methods : MonoBehaviour
                 break;
         }
     }
-    public  int DoFunction(Method method, List<int> parameters, string colorstr)
+    public int DoFunction(Method method, List<int> parameters, string colorstr)
     {
         switch (method)
         {
@@ -55,37 +56,102 @@ public class Methods : MonoBehaviour
     }
     public void Spawn(int x, int y)
     {
-        if (x > main.large || x < 0 || y > main.large || y < 0)
+        if (x >= main.large || x < 0 || y >= main.large || y < 0)
         {
-            MainScript.logText = "ERROR!!!! SPAWN OUT OF CANVAS";
+            main.log.text = "ERROR!!!! SPAWN OUT OF CANVAS";
             interpreter.error = true;
             return;
         }
         spawnsCount++;
         if (spawnsCount > 1)
         {
-            MainScript.logText = "ERROR!!!! THERE CAN ONLY BE ONE SPAWN";
+            main.log.text = "ERROR!!!! THERE CAN ONLY BE ONE SPAWN";
             interpreter.error = true;
             return;
         }
-        MainScript.logText = "Empezaste en " + x + ", " + y + "\n";
-        MainScript.x = x;
-        MainScript.y = y;
+        main.x = x;
+        main.y = y;
         pointer.transform.position = new Vector3(main.cellScale * x, -main.cellScale * y, 0);
     }
-    public  void Color(string color)
+    public void Color(string color)
     {
-
+        if (Enum.TryParse(color, out CellColor cellcolor)) main.actualColor = cellcolor;
+        else
+        {
+            main.log.text = "ERROR!!!! \"" + color + "\" IS NOT A DEFINED COLOR";
+            interpreter.error = true;
+            return;
+        }
     }
-    public  void Size(int x)
+    public void Size(int x)
     {
-
+        if (x <= 0)
+        {
+            main.log.text = "ERROR!!!! INCORRECT BRUSH SIZE ASSIGNMENT";
+            interpreter.error = true;
+            return;
+        }
+        if (x % 2 == 0) main.actualBrushSize = x - 1;
+        else main.actualBrushSize = x;
     }
-    public  void DrawLine(int dirX, int dirY, int distance)
+    public void DrawLine(int dirX, int dirY, int distance)
     {
+        //normalizer
+        dirX = dirX > 0 ? 1 : (dirX < 0 ? -1 : 0);
+        dirY = dirY > 0 ? 1 : (dirY < 0 ? -1 : 0);
 
+        if (distance <= 0) return;
+        if (distance >= main.actualBrushSize - 1)
+        {
+            Segment(dirX, dirY, distance, main.actualBrushSize);
+            DrawLine(dirX, dirY, distance-1);
+        }
+        else
+        {
+            int localsize = (distance % 2 == 0) ? distance + 1 : distance;
+            Segment(dirX, dirY, distance, localsize);
+            DrawLine(dirX, dirY, distance-1);
+        }
     }
-    public  void DrawCircle(int dirX, int dirY, int radius)
+    public void Segment(int dirX, int dirY, int distance, int side) // method for DrawLine()
+    {
+        for (int f = 0; f < side; f++)
+        {
+            for (int c = 0; c < side; c++)
+            {
+                int currentX = main.x + (dirX * c);
+                int currentY = main.y + (dirY * f);
+
+                if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+
+                if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentX, currentY].color = main.actualColor;
+            }
+        }
+        // pointer in the limits
+        main.x = Mathf.Clamp(main.x + (dirX * distance), 0, main.large - 1);
+        main.y = Mathf.Clamp(main.y + (dirY * distance), 0, main.large - 1);
+
+        // move the pointer
+        pointer.transform.position = new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
+        //Vector3.MoveTowards(pointer.transform.position, new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0), 1);
+        Refresh();
+        //StartCoroutine(Delay());
+    }
+    public IEnumerator Delay()
+    {
+        yield return new WaitForSeconds(main.delay);
+    }
+    public void Refresh()
+    {
+        for (int f = 0; f < main.large; f++)
+        {
+            for (int c = 0; c < main.large; c++)
+            {
+                main.board[f, c].GetComponent<SpriteRenderer>().sprite = main.CellFolder.transform.GetChild((int)main.cellsBoard[f, c].color).gameObject.GetComponent<SpriteRenderer>().sprite;
+            }
+        }
+    }
+    public void DrawCircle(int dirX, int dirY, int radius)
     {
 
     }
@@ -99,15 +165,15 @@ public class Methods : MonoBehaviour
     }
     public  int GetActualX()
     {
-        return 0;
+        return main.x;
     }
     public  int GetActualY()
     {
-        return 0;
+        return main.y;
     }
     public  int GetCanvasSize()
     {
-        return 0;
+        return main.large;
     }
     public  int GetColorCount(string color, int x1, int y1, int x2, int y2)
     {
@@ -115,11 +181,17 @@ public class Methods : MonoBehaviour
     }
     public  int IsBrushColor(string color)
     {
-        return 0;
+        if (Enum.TryParse(color, out CellColor cellcolor))
+        {
+            if (cellcolor == main.actualColor) return 1;
+            else return 0;
+        }
+        else return 0;
     }
     public  int IsBrushSize(int size)
     {
-        return 0;
+        if (size == main.actualBrushSize) return 1;
+        else return 0;
     }
     public  int IsCanvasColor(string color, int vertical, int horizontal)
     {

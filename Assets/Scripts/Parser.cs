@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 public class Parser : MonoBehaviour
 {
+    public MainScript main;
     public Interpreter interpreter;
     public  int line;
     public  bool ismethod = false;
@@ -211,7 +212,11 @@ public class Parser : MonoBehaviour
                     }
                     if (text[i] == ',')
                     {
-                        if (contParenthesis != 0) Console.WriteLine("ERROR, INCOMPLETE PARENTHESIS!!!!  line " + line);
+                        if (contParenthesis != 0)
+                        {
+                            main.log.text = "ERROR, INCOMPLETE PARENTHESIS!!!!  line " + line;
+                            interpreter.error = true;
+                        }    
                         tokens.Add(auxstr);
                         auxstr = "";
                         i++;
