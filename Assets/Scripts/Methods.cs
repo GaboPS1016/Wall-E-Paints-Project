@@ -9,6 +9,10 @@ public class Methods : MonoBehaviour
     public Interpreter interpreter;
     public GameObject pointer;
     public MainScript main;
+    public int currentBrush;
+    public int rectSize;
+    public bool resize = true;
+    public CellColor colorToFill;
     public void DoAction(Method method, List<int> parameters, string colorstr)
     {
         switch (method)
@@ -24,12 +28,19 @@ public class Methods : MonoBehaviour
                 break;
             case Method.DrawLine:
                 DrawLine(parameters[0], parameters[1], parameters[2]);
+                resize = true;
+                currentBrush = main.actualBrushSize;
                 break;
             case Method.DrawCircle:
                 DrawCircle(parameters[0], parameters[1], parameters[2]);
                 break;
             case Method.DrawRectangle:
                 DrawRectangle(parameters[0], parameters[1], parameters[2], parameters[3], parameters[4]);
+                break;
+            case Method.Fill:
+                if (main.actualColor == CellColor.Transparent) break;
+                colorToFill = main.cellsBoard[main.y, main.x].color;
+                Fill(main.x, main.y);
                 break;
         }
     }
@@ -93,49 +104,113 @@ public class Methods : MonoBehaviour
         }
         if (x % 2 == 0) main.actualBrushSize = x - 1;
         else main.actualBrushSize = x;
+        currentBrush = main.actualBrushSize;
+        rectSize = main.actualBrushSize;
     }
     public void DrawLine(int dirX, int dirY, int distance)
     {
+        bool indexout = false;
         //normalizer
         dirX = dirX > 0 ? 1 : (dirX < 0 ? -1 : 0);
         dirY = dirY > 0 ? 1 : (dirY < 0 ? -1 : 0);
 
+        //large of side of the square points
+        if (dirX == 0 && dirY == 0) return;
         if (distance <= 0) return;
-        if (distance >= main.actualBrushSize - 1)
+
+        
+
+        //diagonal
+        if (dirX != 0 && dirY != 0)
         {
-            Segment(dirX, dirY, distance, main.actualBrushSize);
-            DrawLine(dirX, dirY, distance-1);
-        }
-        else
-        {
-            int localsize = (distance % 2 == 0) ? distance + 1 : distance;
-            Segment(dirX, dirY, distance, localsize);
-            DrawLine(dirX, dirY, distance-1);
-        }
-    }
-    public void Segment(int dirX, int dirY, int distance, int side) // method for DrawLine()
-    {
-        for (int f = 0; f < side; f++)
-        {
-            for (int c = 0; c < side; c++)
+            if (distance < currentBrush - 1) currentBrush = (distance % 2 == 0) ? distance + 1 : distance;
+            for (int f = 0; f < currentBrush; f++)
             {
-                int currentX = main.x + (dirX * c);
-                int currentY = main.y + (dirY * f);
+                for (int c = 0; c < currentBrush; c++)
+                {
+                    //pixel to paint
+                    int currentX = main.x + (dirX * c);
+                    int currentY = main.y + (dirY * f);
 
-                if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
-
-                if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentX, currentY].color = main.actualColor;
+                    //checking limits
+                    if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                    //painting
+                    if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
+                }
             }
         }
-        // pointer in the limits
-        main.x = Mathf.Clamp(main.x + (dirX * distance), 0, main.large - 1);
-        main.y = Mathf.Clamp(main.y + (dirY * distance), 0, main.large - 1);
+        //horizontal or vertical
+        else
+        {   
+            if (resize)
+            {
+                resize = false;
+                if (main.actualBrushSize > distance) rectSize = distance - distance % 2;
+                else rectSize = main.actualBrushSize;
+            }
+            for (int i = -rectSize / 2; i <= rectSize / 2; i++)
+            {
+                //pixel to paint
+                int currentX = main.x;
+                int currentY = main.y;
+                if (dirX == 0) currentX += i;
+                if (dirY == 0) currentY += i;
 
+                //checking limits
+                if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                //painting
+                if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
+            }
+        }
+        
+        
+        // pointer in the limits
+        if (main.x + dirX < 0 || main.x + dirX >= main.large || main.y + dirY < 0 || main.y + dirY >= main.large)
+        {
+            indexout = true;
+            main.log.text = "ERROR!!!! DRAWING OUT OF CANVAS";
+            interpreter.error = true;
+        }
+
+        main.x = Mathf.Clamp(main.x + dirX, 0, main.large - 1);
+        main.y = Mathf.Clamp(main.y + dirY, 0, main.large - 1);
+
+        //last pixel
+        if (!indexout && distance == 1 && main.actualColor != CellColor.Transparent)
+        {
+            if (dirX == 0 || dirY == 0)
+            {
+                for (int i = -rectSize / 2; i <= rectSize / 2; i++)
+                {
+                    //pixel to paint
+                    int currentX = main.x;
+                    int currentY = main.y;
+                    if (dirX == 0) currentX += i;
+                    if (dirY == 0) currentY += i;
+
+                    //checking limits
+                    if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                    //painting
+                    main.cellsBoard[currentY, currentX].color = main.actualColor;
+                }
+                
+            }
+            else main.cellsBoard[main.y, main.x].color = main.actualColor;
+        }    
+        if (indexout)
+        {
+            indexout = false;
+            Refresh();
+            return;
+        }
+        
         // move the pointer
         pointer.transform.position = new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
         //Vector3.MoveTowards(pointer.transform.position, new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0), 1);
+        //new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
         Refresh();
-        //StartCoroutine(Delay());
+        if (distance <= 1) return;
+        DrawLine(dirX, dirY, distance - 1);
     }
     public IEnumerator Delay()
     {
@@ -159,9 +234,24 @@ public class Methods : MonoBehaviour
     {
 
     }
-    public  void Fill()
+    public void Fill(int x, int y)
     {
+        main.cellsBoard[y, x].color = main.actualColor;
+        for (int f = -1; f <= 1; f++)
+        {
+            for (int c = -1; c <= 1; c++)
+            {
+                if (f == 0 && c == 0) continue;
+                if (f != 0 && c != 0) continue;
 
+                int currentX = x + c;
+                int currentY = y + f;
+                //checking limits
+                if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                if (main.cellsBoard[currentY, currentX].color != colorToFill) continue;
+                Fill(currentX, currentY);
+            }
+        }
     }
     public  int GetActualX()
     {

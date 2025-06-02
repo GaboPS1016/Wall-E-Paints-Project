@@ -7,7 +7,7 @@ public class MainScript : MonoBehaviour
     public Interpreter interpreter;
     public Methods methods;
     public TMP_Text log;
-    public TMP_Text input;
+    public TMP_InputField input;
     public TMP_InputField inputDim;
     public GameObject[,] board;
     public Cells[,] cellsBoard;
@@ -38,6 +38,7 @@ public class MainScript : MonoBehaviour
 
         actualColor = CellColor.Transparent;
         actualBrushSize = 1;
+        methods.currentBrush = actualBrushSize;
 
         for (int f = 0; f < large; f++)
         {
@@ -52,6 +53,8 @@ public class MainScript : MonoBehaviour
     void EnumerateRowsAndColumns()
     {
         float separation = 0.25f;
+        Vector3 numscale = numberPrefab.transform.localScale;
+        if (large > 25) numberPrefab.transform.localScale = new Vector3(numscale.x * cellScale * 2, numscale.y * cellScale * 2, 1);
         // delete old numbers
         foreach (Transform child in nums.transform)
         {
@@ -73,6 +76,7 @@ public class MainScript : MonoBehaviour
             rowNumber.GetComponent<TMP_Text>().text = row.ToString();
             rowNumber.transform.position = new Vector3(-separation, -cellScale * row - cellScale / 2, 0);
         }
+        numberPrefab.transform.localScale = new Vector3(numscale.x, numscale.y, 1);
     }
     public void Redimension()
     {
@@ -88,7 +92,6 @@ public class MainScript : MonoBehaviour
         if (string.IsNullOrEmpty(cleanInput)) large2 = 20;
         else
         {
-            // Alternativa más robusta
             try
             {
                 large2 = int.Parse(cleanInput);
@@ -143,7 +146,6 @@ public class MainScript : MonoBehaviour
 
         List<string> tokens = parser.Parsing(input.text);
         interpreter.MainInterpreter(tokens);
-
         for (int f = 0; f < large; f++)
         {
             for (int c = 0; c < large; c++)
@@ -157,8 +159,14 @@ public class MainScript : MonoBehaviour
         log.text = "";
         interpreter.error = false;
         methods.spawnsCount = 0;
+        actualBrushSize = 1;
+        methods.currentBrush = 1;
+        actualColor = CellColor.Transparent;
+        x = 0;
+        y = 0;
         interpreter.numVars.Clear();
         interpreter.boolVars.Clear();
+        methods.pointer.transform.position = new Vector3(-30, 0, 0);
 
         for (int f = 0; f < large; f++)
         {

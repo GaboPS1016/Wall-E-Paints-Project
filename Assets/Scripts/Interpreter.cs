@@ -50,14 +50,7 @@ public class Interpreter : MonoBehaviour
             methods.DoAction(method, parameters, colorstr);
             if (error) return;
             //next token
-            try
-            {
-                tokenInterpreter(tokens, index + numParameters + 1);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return;
-            }
+            tokenInterpreter(tokens, index + 1);
         }
         //functions
         else if (IsFunction(tokens[index]))
@@ -143,20 +136,8 @@ public class Interpreter : MonoBehaviour
                 }
             }
         }
-        if (error) return;
         //next token
-        else
-        {
-            if (error) return;
-            try
-            {
-                tokenInterpreter(tokens, index + 1);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return;
-            }
-        }
+        else tokenInterpreter(tokens, index + 1);
     }
     public  int DoingOperation(string token)
     {
@@ -173,11 +154,7 @@ public class Interpreter : MonoBehaviour
         }
         if (toks.Count == 1)
         {
-            if (toks[0][0] == '(')
-            {
-                string inntok = toks[0].Substring(1, toks[0].Length - 2);
-                return DoingOperation(inntok);
-            }
+            if (toks[0][0] == '(') return DoingOperation(toks[0]); 
             else if (int.TryParse(toks[0], out int singlenum)) return singlenum;
             else toks = parser.Parsing(toks[0]);
         }    
@@ -345,7 +322,6 @@ public class Interpreter : MonoBehaviour
         }
         for (int i = 0; i < toks.Count; i++)
         {
-            main.log.text = toks[i];
             //predicates
             if (i % 2 == 0)
             {

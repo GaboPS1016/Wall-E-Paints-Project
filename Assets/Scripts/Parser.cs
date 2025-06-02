@@ -12,15 +12,13 @@ public class Parser : MonoBehaviour
     {
         List<string> tokens = new List<string>();
         string auxstr = "";
-        line = 1;
         for (int i = 0; i < text.Length; i++)
         {
-            if (text[i] == '\n') line++;
             //deleting spaces
             if (text[i] == ' ' || text[i] == '\t' || text[i] == '\n')
             {
                 if (ismethod) continue;
-                if (auxstr != "")
+                if (auxstr != "" )
                 {
                     tokens.Add(auxstr);
                     auxstr = "";
@@ -91,6 +89,7 @@ public class Parser : MonoBehaviour
             //end of text
             char nextchar = ' ';
             if (i != text.Length - 1) nextchar = text[i + 1];
+
             //particular case || and &&
             if ((text[i] == '&' && nextchar == '&') || (text[i] == '|' && nextchar == '|'))
             {
@@ -138,7 +137,12 @@ public class Parser : MonoBehaviour
             }
         }
         if (auxstr != "") tokens.Add(auxstr);
-        return tokens;
+        List<string> filteredTokens = new List<string>();
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            if (tokens[i].Trim() != "") filteredTokens.Add(tokens[i].Trim());
+        }
+        return filteredTokens;
     }
     public  List<string> MethodParsing(string text)
     {
@@ -335,7 +339,7 @@ public class Parser : MonoBehaviour
         //functions
         if (nextchar == ' ' || nextchar == '(')
         {
-            if (Enum.IsDefined(typeof(Method), auxstr)) return true;
+            if (Enum.IsDefined(typeof(Method), auxstr)) return false;
         }
         if ((nextchar == ' ' || nextchar == '[') && auxstr == "GoTo") return true;
 
@@ -352,10 +356,14 @@ public class Parser : MonoBehaviour
         //operators
         if (auxstr == "+" ||
             auxstr == "-" ||
-           (auxstr == "*" && nextchar != '*') ||
+            auxstr == "*" ||
+            auxstr == "**" ||
             auxstr == "/" ||
-            auxstr == "%") return true;
-
+            auxstr == "%")
+        {
+            if (auxstr == "*" && nextchar == '*') return false;
+            return true;
+        }
 
         //logic operators
         if (auxstr == "<" ||
