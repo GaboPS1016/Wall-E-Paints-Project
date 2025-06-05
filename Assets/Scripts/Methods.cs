@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.PackageManager;
 
 public class Methods : MonoBehaviour
 {
@@ -200,7 +201,7 @@ public class Methods : MonoBehaviour
         if (indexout)
         {
             indexout = false;
-            Refresh();
+            main.Refresh();
             return;
         }
         
@@ -208,7 +209,7 @@ public class Methods : MonoBehaviour
         pointer.transform.position = new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
         //Vector3.MoveTowards(pointer.transform.position, new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0), 1);
         //new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
-        Refresh();
+        main.Refresh();
         if (distance <= 1) return;
         DrawLine(dirX, dirY, distance - 1);
     }
@@ -216,23 +217,119 @@ public class Methods : MonoBehaviour
     {
         yield return new WaitForSeconds(main.delay);
     }
-    public void Refresh()
-    {
-        for (int f = 0; f < main.large; f++)
-        {
-            for (int c = 0; c < main.large; c++)
-            {
-                main.board[f, c].GetComponent<SpriteRenderer>().sprite = main.CellFolder.transform.GetChild((int)main.cellsBoard[f, c].color).gameObject.GetComponent<SpriteRenderer>().sprite;
-            }
-        }
-    }
+    
     public void DrawCircle(int dirX, int dirY, int radius)
     {
+        if (radius < 0)
+        {
+            main.log.text = "ERROR!!!! EL RADIO DEL CÍRCULO NO PUEDE SER NEGATIVO";
+            interpreter.error = true;
+            return;
+        }
+        if (radius == 0)
+        {
+            if (main.actualColor != CellColor.Transparent) main.cellsBoard[main.y, main.x].color = main.actualColor;
+            return;
+        }
+        //normalizer
+        dirX = dirX > 0 ? 1 : (dirX < 0 ? -1 : 0);
+        dirY = dirY > 0 ? 1 : (dirY < 0 ? -1 : 0);
+        //center
+        int centerX = main.x + radius * dirX;
+        int centerY = main.y + radius * dirY;
 
+        if (centerX < 0 || centerX >= main.large || centerY < 0 || centerY >= main.large)
+        {
+            main.log.text = "ERROR!!!! EL CENTRO DEL CÍRCULO ESTÁ FUERA DEL CANVAS";
+            interpreter.error = true;
+            return;
+        }
+        main.x = centerX;
+        main.y = centerY;
+
+        
+        main.Refresh();
     }
-    public  void DrawRectangle(int dirX, int dirY, int distance, int width, int height)
+    public void DrawRectangle(int dirX, int dirY, int distance, int width, int height)
     {
+        if (distance < 0 || width < 0 || height < 0)
+        {
+            main.log.text = "ERROR!!!! LOS PARÁMETROS DEL RECTÁNGULO DEBEN SER POSITIVOS";
+            interpreter.error = true;
+            return;
+        }
+        //normalizer
+        dirX = dirX > 0 ? 1 : (dirX < 0 ? -1 : 0);
+        dirY = dirY > 0 ? 1 : (dirY < 0 ? -1 : 0);
+        //center
+        int centerX = main.x + distance * dirX;
+        int centerY = main.y + distance * dirY;
 
+        if (centerX < 0 || centerX >= main.large || centerY < 0 || centerY >= main.large)
+        {
+            main.log.text = "ERROR!!!! EL CENTRO DEL RECTÁNGULO ESTÁ FUERA DEL CANVAS";
+            interpreter.error = true;
+            return;
+        }
+
+        if (width == 0 || height == 0) return;
+        if (width % 2 == 0) width++;
+        if (height % 2 == 0) height++;
+
+        int semiWidth = width / 2 + 1;
+        int semiHeight = height / 2 + 1;
+        //horizontal sides
+        for (int sign = -1; sign <= 1; sign += 2)
+        {
+            for (int brush = -main.actualBrushSize / 2; brush <= main.actualBrushSize / 2; brush++)
+            {
+                for (int i = -semiWidth; i <= semiWidth; i++)
+                {
+                    int currentX = centerX + i;
+                    int currentY = centerY + (semiHeight + brush) * sign;
+                    if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                    if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
+                }
+            }
+        }
+        //vertical sides
+        for (int sign = -1; sign <= 1; sign += 2)
+        {
+            for (int brush = -main.actualBrushSize / 2; brush <= main.actualBrushSize / 2; brush++)
+            {
+                for (int i = -semiHeight; i <= semiHeight; i++)
+                {
+                    int currentX = centerX + (semiWidth + brush) * sign;
+                    int currentY = centerY + i;
+                    if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                    if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
+                }
+            }
+        }
+        //corners
+        for (int cornerX = -1; cornerX <= 1; cornerX += 2)
+        {
+            for (int cornerY = -1; cornerY <= 1; cornerY += 2)
+            {
+                //corner center position
+                int baseX = centerX + (semiWidth + main.actualBrushSize / 2) * cornerX;
+                int baseY = centerY + (semiHeight + main.actualBrushSize / 2) * cornerY;
+                
+                //fill the corner
+                for (int i = 0; i < main.actualBrushSize / 2; i++)
+                {
+                    for (int j = 0; j < main.actualBrushSize / 2; j++)
+                    {
+                        int x = baseX - i * cornerX;
+                        int y = baseY - j * cornerY;
+                        
+                        if (x < 0 || x >= main.large || y < 0 || y >= main.large) continue;
+                        if (main.actualColor != CellColor.Transparent) main.cellsBoard[y, x].color = main.actualColor;
+                    }
+                }
+            }
+        }
+        main.Refresh();
     }
     public void Fill(int x, int y)
     {
@@ -267,7 +364,25 @@ public class Methods : MonoBehaviour
     }
     public  int GetColorCount(string color, int x1, int y1, int x2, int y2)
     {
-        return 0;
+        if (Enum.TryParse(color, out CellColor cellcolor))
+        {
+            if (x1 < 0 || x1 >= main.large || x2 < 0 || x2 >= main.large || y1 < 0 || y1 >= main.large || y2 < 0 || y2 >= main.large) return 0;
+            int cont = 0;
+            for (int x = x1; x <= x2; x++)
+            {
+                for (int y = y1; y <= y2; y++)
+                {
+                    if (main.cellsBoard[y, x].color == cellcolor) cont++;
+                }
+            }
+            return cont;
+        }
+        else
+        {
+            main.log.text = "ERROR!!!! \"" + color + "\" NO ES UN COLOR EXISTENTE";
+            interpreter.error = true;
+            return 0;
+        }
     }
     public  int IsBrushColor(string color)
     {
@@ -276,16 +391,34 @@ public class Methods : MonoBehaviour
             if (cellcolor == main.actualColor) return 1;
             else return 0;
         }
-        else return 0;
+        else
+        {
+            main.log.text = "ERROR!!!! \"" + color + "\" NO ES UN COLOR EXISTENTE";
+            interpreter.error = true;
+            return 0;
+        }
     }
     public  int IsBrushSize(int size)
     {
         if (size == main.actualBrushSize) return 1;
         else return 0;
     }
-    public  int IsCanvasColor(string color, int vertical, int horizontal)
+    public int IsCanvasColor(string color, int vertical, int horizontal)
     {
-        return 0;
+        if (Enum.TryParse(color, out CellColor cellcolor))
+        {
+            int x = main.x + vertical;
+            int y = main.y + horizontal;
+            if (x < 0 || x >= main.large || y < 0 || y >= main.large) return 0;
+            if (main.cellsBoard[y, x].color == cellcolor) return 1;
+            return 0;
+        }
+        else
+        {
+            main.log.text = "ERROR!!!! \"" + color + "\" NO ES UN COLOR EXISTENTE";
+            interpreter.error = true;
+            return 0;
+        } 
     }
     public  Dictionary<Method, int> ParametersDictionary = new()
     {

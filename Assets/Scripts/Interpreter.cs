@@ -14,7 +14,15 @@ public class Interpreter : MonoBehaviour
     public  Dictionary<string, bool> boolVars = new Dictionary<string, bool>();
     public void MainInterpreter(List<string> tokens)
     {
-        tokenInterpreter(tokens, 0);
+        if (IsMethod(tokens[0]) && parser.MethodParsing(tokens[0])[0] == "Spawn")
+        {
+            tokenInterpreter(tokens, 0);
+        }
+        else
+        {
+            main.log.text = "ERROR!!!! LA PRIMERA INSTRUCCIÓN DEBE SER Spawn(x,y)";
+            return;
+        }   
     }
     public void tokenInterpreter(List<string> tokens, int index)
     {
@@ -31,7 +39,7 @@ public class Interpreter : MonoBehaviour
 
             if (numParameters != methodlist.Count - 1)
             {
-                main.log.text = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
+                main.log.text = "ERROR!!!! NÚMERO DE PARÁMETROS INCORRECTO";
                 return;
             }
             string colorstr = "";
@@ -55,7 +63,7 @@ public class Interpreter : MonoBehaviour
         //functions
         else if (IsFunction(tokens[index]))
         {
-            main.log.text = "ERROR!!!! FUNCTION NOT ASSIGNED TO A VARIABLE";
+            main.log.text = "ERROR!!!! FUNCIÓN NO ASIGNADA A UNA VARIABLE";
             return;
         }
         //variable declaration
@@ -63,7 +71,7 @@ public class Interpreter : MonoBehaviour
         {
             if (!IsValidVariableName(tokens[index - 1]))
             {
-                main.log.text = "ERROR!!!! INCORRECT VARIABLE NAME";
+                main.log.text = "ERROR!!!! NOMBRE DE VARIABLE INCORRECTO";
                 error = true;
                 return;
             }
@@ -103,7 +111,7 @@ public class Interpreter : MonoBehaviour
         {
             if (tokens[index + 1][0] != '[' || !IsBool(tokens[index + 2]))
             {
-                main.log.text = "ERROR!!!! INCORRECT LOOP SINTAXIS";
+                main.log.text = "ERROR!!!! SINTAXIS DE BUCLE INCORRECTA";
                 error = true;
                 return;
             }
@@ -114,7 +122,13 @@ public class Interpreter : MonoBehaviour
                 int target = Find(tokens, label);
                 if (target == -1)
                 {
-                    main.log.text = "ERROR!!!! LABEL \"" + label + "\" NOT FOUND";
+                    main.log.text = "ERROR!!!! ETIQUETA \"" + label + "\" NO ENCONTRADA";
+                    error = true;
+                    return;
+                }
+                if (IsVariableDeclaration(tokens[target + 1]))
+                {
+                    main.log.text = "ERROR!!!! LA ETIQUETA \"" + label + "\" ES UNA VARIABLE";
                     error = true;
                     return;
                 }
@@ -148,7 +162,7 @@ public class Interpreter : MonoBehaviour
 
         if (IsBool(token))
         {
-            main.log.text = "ERROR!!!! THE OPERATION IS BOOLEAN, CAN'T OPERATE";
+            main.log.text = "ERROR!!!! LA OPERACIÓN ES BOOLEANA, NO ES OPERABLE";
             error = true;
             return 0;
         }
@@ -193,7 +207,7 @@ public class Interpreter : MonoBehaviour
                 //is a boolean variable
                 else if (boolVars.ContainsKey(toks[i]))
                 {
-                    main.log.text = "ERROR!!!! THE VARIABLE \"" + toks[i] + "\" IS BOOLEAN";
+                    main.log.text = "ERROR!!!! LA VARIABLE \"" + toks[i] + "\" ES BOOLEANA";
                     error = true;
                     return 0;
                 }
@@ -202,7 +216,7 @@ public class Interpreter : MonoBehaviour
                 //doesnt exist
                 else
                 {
-                    main.log.text = "ERROR!!!! \"" + toks[i] + "\" DOES NOT EXIST";
+                    main.log.text = "ERROR!!!! \"" + toks[i] + "\" NO EXISTE";
                     error = true;
                     return 0;
                 }
@@ -245,7 +259,7 @@ public class Interpreter : MonoBehaviour
                 case "/":
                     if (nums[i + 1] == 0)
                     {
-                        main.log.text = "ERROR!!! DIVISION BY ZERO!!!";
+                        main.log.text = "ERROR!!! NO SE PUEDE DIVIDIR ENTRE 0";
                         error = true;
                         return 1;
                     }
@@ -306,7 +320,7 @@ public class Interpreter : MonoBehaviour
             //num var
             else if (numVars.ContainsKey(toks[0]))
             {
-                main.log.text = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
+                main.log.text = "ERROR!!!! " + toks[0] + " ES UNA VARIABLE NUMÉRCA, NO BOOLEANA";
                 error = true;
                 return false;
             }
@@ -315,7 +329,7 @@ public class Interpreter : MonoBehaviour
             //nothing
             else
             {
-                main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[0] + " DO NOT EXISTS";
+                main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA, " + toks[0] + " NO EXISTE";
                 error = true;
                 return false;
             }
@@ -334,13 +348,13 @@ public class Interpreter : MonoBehaviour
                 //is a num variable
                 else if (numVars.ContainsKey(toks[i]))
                 {
-                    main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, CANT OPERATE NUM VARS WITH LOGIC OPERATORS";
+                    main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA, NO SE PUEDE OPERAR ENTEROS CON && O ||";
                     error = true;
                     return false;
                 }
                 else
                 {
-                    main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, " + toks[i] + " NOT EXISTS";
+                    main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA, " + toks[i] + " NO EXISTE";
                     error = true;
                     return false;
                 }

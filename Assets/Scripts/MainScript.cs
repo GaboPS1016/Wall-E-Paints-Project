@@ -1,6 +1,11 @@
 using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
+using System.IO;
+using SimpleFileBrowser;
+using System.Collections;
+using System.Linq;
+using System;
 public class MainScript : MonoBehaviour
 {
     public Parser parser;
@@ -146,6 +151,11 @@ public class MainScript : MonoBehaviour
 
         List<string> tokens = parser.Parsing(input.text);
         interpreter.MainInterpreter(tokens);
+        
+        Refresh();
+    }
+    public void Refresh()
+    {
         for (int f = 0; f < large; f++)
         {
             for (int c = 0; c < large; c++)
@@ -176,5 +186,64 @@ public class MainScript : MonoBehaviour
                 board[f, c].GetComponent<SpriteRenderer>().sprite = CellFolder.transform.GetChild(0).gameObject.GetComponent<SpriteRenderer>().sprite;
             }
         }
+    }
+    public void Save()
+    {
+        string content = input.text;
+
+        FileBrowser.SetFilters(true, new FileBrowser.Filter("Archivo PW", ".pw"));
+        FileBrowser.SetDefaultFilter(".pw");
+
+        FileBrowser.ShowSaveDialog(
+            onSuccess: paths =>
+            {
+                string path = paths[0];
+                try
+                {
+                    File.WriteAllText(path, content);
+                    log.text = "Archivo guardado correctamente en: " + path;
+                }
+                catch (Exception ex)
+                {
+                    log.text = "Error al guardar archivo: " + ex.Message;
+                }
+            },
+            onCancel: () =>
+            {
+                log.text = "Cancelado por el usuario";
+            },
+            pickMode: FileBrowser.PickMode.Files,
+            allowMultiSelection: false,
+            initialPath: null,
+            title: "Guardar como",
+            saveButtonText: "Guardar"
+        );
+    }
+    public void Load()
+    {
+        FileBrowser.ShowLoadDialog(
+            onSuccess: paths =>
+            {
+                string path = paths[0];
+                try
+                {
+                    input.text = File.ReadAllText(path);
+                    log.text = "Archivo cargado correctamente";
+                }
+                catch (Exception ex)
+                {
+                    log.text = "Error al cargar archivo: " + ex.Message;
+                }
+            },
+            onCancel: () =>
+            {
+                log.text = "Cancelado por el usuario";
+            },
+            pickMode: FileBrowser.PickMode.Files,
+            allowMultiSelection: false,
+            initialPath: null,
+            title: "Cargar",
+            loadButtonText: "Cargar"
+        );
     }
 }
