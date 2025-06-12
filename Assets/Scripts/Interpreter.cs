@@ -14,6 +14,7 @@ public class Interpreter : MonoBehaviour
     public  Dictionary<string, bool> boolVars = new Dictionary<string, bool>();
     public void MainInterpreter(List<string> tokens)
     {
+        if (tokens.Count == 0) return;
         if (IsMethod(tokens[0]) && parser.MethodParsing(tokens[0])[0] == "Spawn")
         {
             tokenInterpreter(tokens, 0);
@@ -134,20 +135,22 @@ public class Interpreter : MonoBehaviour
                 }
                 else
                 {
-                    tokenInterpreter(tokens, target);
+                    try
+                    {
+                        tokenInterpreter(tokens, target);
+                    }
+                    catch (StackOverflowException)
+                    {
+                        main.log.text = "ERROR!!!! HAS CREADO UN BUCLE INFINITO";
+                        error = true;
+                        return;
+                    }                    
                 }
             }
             else
             {
                 if (error) return;
-                try
-                {
-                    tokenInterpreter(tokens, index + 3);
-                }
-                catch (ArgumentOutOfRangeException)
-                {
-                    return;
-                }
+                tokenInterpreter(tokens, index + 3);
             }
         }
         //next token
@@ -387,14 +390,14 @@ public class Interpreter : MonoBehaviour
             //num var
             else if (numVars.ContainsKey(toks[0]))
             {
-                main.log.text = "ERROR!!!! " + toks[0] + " IS A NUMERICAL VARIABLE, NOT BOOLEAN";
+                main.log.text = "ERROR!!!! " + toks[0] + " ES UNA VARIABLE NUMÉRICA, NO BOOLEANA";
                 error = true;
                 return false;
             }
             //nothing
             else
             {
-                main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION \""+ toks[0] +"\"";
+                main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA \""+ toks[0] +"\"";
                 error = true;
                 return false;
             }
@@ -407,7 +410,7 @@ public class Interpreter : MonoBehaviour
                 //expressions
                 if (IsBool(toks[i]))
                 {
-                    main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
+                    main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA";
                     error = true;
                     return false;
                 }
@@ -425,7 +428,7 @@ public class Interpreter : MonoBehaviour
         //only one operator
         if (boolsigns.Count > 1)
         {
-            main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION, TOO MANY BOOL OPERATORS IN PREDICATE ";
+            main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA, MUCHOS OPERADORES BOOLEANOS EN UN PREDICADO";
             error = true;
             return false;
         }
@@ -473,7 +476,7 @@ public class Interpreter : MonoBehaviour
             case ">=":
                 return nums[0] >= nums[1];
             default:
-                main.log.text = "ERROR!!!! INCORRECT BOOLEAN EXPRESSION";
+                main.log.text = "ERROR!!!! EXPRESIÓN BOOLEANA INCORRECTA";
                 error = true;
                 return false;
         }
@@ -487,7 +490,7 @@ public class Interpreter : MonoBehaviour
         string colorstr = "";
         if (numParameters != function.Count - 1)
         {
-            main.log.text = "ERROR!!!! INCORRECT NUMBER OF PARAMETERS";
+            main.log.text = "ERROR!!!! INCORRECTO NÚMERO DE PARÁMETROS";
             error = true;
             return 0;
         }

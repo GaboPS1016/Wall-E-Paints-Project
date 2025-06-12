@@ -218,7 +218,7 @@ public class Parser : MonoBehaviour
                     {
                         if (contParenthesis != 0)
                         {
-                            main.log.text = "ERROR, INCOMPLETE PARENTHESIS!!!!  line " + line;
+                            main.log.text = "ERROR, PARÉNTESIS INCOMPLETO!!!!  line " + line;
                             interpreter.error = true;
                         }    
                         tokens.Add(auxstr);

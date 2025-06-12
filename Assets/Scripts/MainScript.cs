@@ -36,7 +36,7 @@ public class MainScript : MonoBehaviour
         cellScale = 10 / (float)large;
         CellFolder.transform.GetChild(0).localScale = new Vector3(cellScale, cellScale, 1);
         // Changing the scale of the pointer
-        methods.pointer.transform.localScale = new Vector3((float)(cellScale / 20), (float)(cellScale / 20), 1);
+        methods.pointer.transform.localScale = new Vector3(cellScale, cellScale, 1);
 
         board = new GameObject[large, large];
         cellsBoard = new Cells[large, large];
@@ -86,11 +86,6 @@ public class MainScript : MonoBehaviour
     public void Redimension()
     {
         int large2 = 20;
-        log.text = "";
-        interpreter.error = false;
-        methods.spawnsCount = 0;
-        interpreter.numVars.Clear();
-        interpreter.boolVars.Clear();
 
         //Catching input
         string cleanInput = inputDim.text.Trim();
@@ -102,18 +97,17 @@ public class MainScript : MonoBehaviour
                 large2 = int.Parse(cleanInput);
                 if (large2 <= 0)
                 {
-                    log.text = "ERROR!!!! INCORRECT DIMENSION NUMBER: " + large2;
+                    log.text = "ERROR!!!! NÚMERO DE DIMENSIÓN INCORRECTO: " + large2;
                     return;
                 }
                 if (large2 > 200) large2 = 200;
             }
             catch (System.Exception)
             {
-                log.text = "ERROR!!!! INCORRECT DIMENSION INPUT: " + large2;
+                log.text = "ERROR!!!! PARÁMETRO DE DIMENSIÓN INCORRECTO: " + large2;
                 return;
             }
         }
-
         //Destroy actual board
         for (int f = 0; f < large; f++)
         {
@@ -127,14 +121,10 @@ public class MainScript : MonoBehaviour
         cellScale = 10 / (float)large;
         CellFolder.transform.GetChild(0).localScale = new Vector3(cellScale, cellScale, 1);
         // Changing the scale of the pointer
-        methods.pointer.transform.localScale = new Vector3((float)(cellScale / 20), (float)(cellScale / 20), 1);
+        methods.pointer.transform.localScale = new Vector3(cellScale, cellScale, 1);
 
         board = new GameObject[large, large];
         cellsBoard = new Cells[large, large];
-
-        actualColor = CellColor.Transparent;
-        actualBrushSize = 1;
-
         for (int f = 0; f < large; f++)
         {
             for (int c = 0; c < large; c++)
@@ -143,6 +133,7 @@ public class MainScript : MonoBehaviour
                 board[f, c] = Instantiate(CellFolder.transform.GetChild(0).gameObject, new Vector3(cellScale * c, -cellScale * f, 1), Quaternion.identity);
             }
         }
+        Reset();
         EnumerateRowsAndColumns();
     }
     public void Compile()
@@ -151,7 +142,7 @@ public class MainScript : MonoBehaviour
 
         List<string> tokens = parser.Parsing(input.text);
         interpreter.MainInterpreter(tokens);
-        
+
         Refresh();
     }
     public void Refresh()

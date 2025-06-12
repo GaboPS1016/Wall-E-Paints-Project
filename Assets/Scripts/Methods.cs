@@ -70,14 +70,14 @@ public class Methods : MonoBehaviour
     {
         if (x >= main.large || x < 0 || y >= main.large || y < 0)
         {
-            main.log.text = "ERROR!!!! SPAWN OUT OF CANVAS";
+            main.log.text = "ERROR!!!! SPAWN FUERA DEL CANVAS";
             interpreter.error = true;
             return;
         }
         spawnsCount++;
         if (spawnsCount > 1)
         {
-            main.log.text = "ERROR!!!! THERE CAN ONLY BE ONE SPAWN";
+            main.log.text = "ERROR!!!! SOLO PUEDE HABER UN SPAWN";
             interpreter.error = true;
             return;
         }
@@ -90,7 +90,7 @@ public class Methods : MonoBehaviour
         if (Enum.TryParse(color, out CellColor cellcolor)) main.actualColor = cellcolor;
         else
         {
-            main.log.text = "ERROR!!!! \"" + color + "\" IS NOT A DEFINED COLOR";
+            main.log.text = "ERROR!!!! \"" + color + "\" NO ES UN COLOR DEFINIDO";
             interpreter.error = true;
             return;
         }
@@ -99,7 +99,7 @@ public class Methods : MonoBehaviour
     {
         if (x <= 0)
         {
-            main.log.text = "ERROR!!!! INCORRECT BRUSH SIZE ASSIGNMENT";
+            main.log.text = "ERROR!!!! TAMAÑO INCORRECTO DE LA BROCHA";
             interpreter.error = true;
             return;
         }
@@ -169,7 +169,7 @@ public class Methods : MonoBehaviour
         if (main.x + dirX < 0 || main.x + dirX >= main.large || main.y + dirY < 0 || main.y + dirY >= main.large)
         {
             indexout = true;
-            main.log.text = "ERROR!!!! DRAWING OUT OF CANVAS";
+            main.log.text = "ERROR!!!! DIBUJANDO FUERA DEL CANVAS";
             interpreter.error = true;
         }
 
@@ -207,17 +207,10 @@ public class Methods : MonoBehaviour
         
         // move the pointer
         pointer.transform.position = new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
-        //Vector3.MoveTowards(pointer.transform.position, new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0), 1);
-        //new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
         main.Refresh();
         if (distance <= 1) return;
         DrawLine(dirX, dirY, distance - 1);
     }
-    public IEnumerator Delay()
-    {
-        yield return new WaitForSeconds(main.delay);
-    }
-    
     public void DrawCircle(int dirX, int dirY, int radius)
     {
         if (radius < 0)
@@ -238,6 +231,9 @@ public class Methods : MonoBehaviour
         int centerX = main.x + radius * dirX;
         int centerY = main.y + radius * dirY;
 
+        main.x = Mathf.Clamp(centerX, 0, main.large - 1);
+        main.y = Mathf.Clamp(centerY, 0, main.large - 1);
+
         if (centerX < 0 || centerX >= main.large || centerY < 0 || centerY >= main.large)
         {
             main.log.text = "ERROR!!!! EL CENTRO DEL CÍRCULO ESTÁ FUERA DEL CANVAS";
@@ -247,8 +243,72 @@ public class Methods : MonoBehaviour
         main.x = centerX;
         main.y = centerY;
 
-        
+        // move the pointer
+        pointer.transform.position = new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
+
+        if (main.actualColor == CellColor.Transparent) return;
+
+        //converting to diagonal radius
+        radius = (int)(radius * 1.5f);
+
+        //Bresenham's algorithm
+        int x = 0;
+        int y = radius;
+        int d = 3 - 2 * radius;
+
+        while (x <= y)
+        {
+            AddCirclePoints(centerX, centerY, x, y);
+
+            if (d < 0)
+            {
+                d = d + 4 * x + 6;
+            }
+            else
+            {
+                d = d + 4 * (x - y) + 10;
+                y--;
+            }
+            x++;
+        }
         main.Refresh();
+    }
+    public void AddCirclePoints(int centerX, int centerY, int x, int y)
+    {
+        //four simetrical octancts
+        for (int i = -1; i <= 1; i += 2)
+        {
+            for (int j = -1; j <= 1; j += 2)
+            {
+                for (int brushW = -main.actualBrushSize / 2; brushW <= main.actualBrushSize / 2; brushW++)
+                {
+                    for (int brushH = -main.actualBrushSize / 2; brushH <= main.actualBrushSize / 2; brushH++)
+                    {
+                        int px = centerX + x * i + brushW;
+                        int py = centerY + y * j + brushH;
+                        if (px < 0 || px >= main.large || py < 0 || py >= main.large) continue;
+                        main.cellsBoard[py, px].color = main.actualColor;
+                    }
+                }
+            }
+        }
+        //other four inverted octants
+        for (int i = -1; i <= 1; i += 2)
+        {
+            for (int j = -1; j <= 1; j += 2)
+            {
+                for (int brushW = -main.actualBrushSize / 2; brushW <= main.actualBrushSize / 2; brushW++)
+                {
+                    for (int brushH = -main.actualBrushSize / 2; brushH <= main.actualBrushSize / 2; brushH++)
+                    {
+                        int px = centerX + y * i + brushW;
+                        int py = centerY + x * j + brushH;
+                        if (px < 0 || px >= main.large || py < 0 || py >= main.large) continue;
+                        main.cellsBoard[py, px].color = main.actualColor;
+                    }
+                }
+            }
+        }
     }
     public void DrawRectangle(int dirX, int dirY, int distance, int width, int height)
     {
@@ -264,6 +324,12 @@ public class Methods : MonoBehaviour
         //center
         int centerX = main.x + distance * dirX;
         int centerY = main.y + distance * dirY;
+
+        main.x = Mathf.Clamp(centerX, 0, main.large - 1);
+        main.y = Mathf.Clamp(centerY, 0, main.large - 1);
+
+        // move the pointer
+        pointer.transform.position = new Vector3(main.cellScale * main.x, -main.cellScale * main.y, 0);
 
         if (centerX < 0 || centerX >= main.large || centerY < 0 || centerY >= main.large)
         {
@@ -281,50 +347,33 @@ public class Methods : MonoBehaviour
         //horizontal sides
         for (int sign = -1; sign <= 1; sign += 2)
         {
-            for (int brush = -main.actualBrushSize / 2; brush <= main.actualBrushSize / 2; brush++)
+            for (int brushW = -main.actualBrushSize / 2; brushW <= main.actualBrushSize / 2; brushW++)
             {
-                for (int i = -semiWidth; i <= semiWidth; i++)
+                for (int brushH = -main.actualBrushSize / 2; brushH <= main.actualBrushSize / 2; brushH++)
                 {
-                    int currentX = centerX + i;
-                    int currentY = centerY + (semiHeight + brush) * sign;
-                    if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
-                    if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
+                    for (int i = -semiWidth; i <= semiWidth; i++)
+                    {
+                        int currentX = centerX + i + brushH;
+                        int currentY = centerY + (semiHeight + brushW) * sign;
+                        if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                        if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
+                    }
                 }
             }
         }
         //vertical sides
         for (int sign = -1; sign <= 1; sign += 2)
         {
-            for (int brush = -main.actualBrushSize / 2; brush <= main.actualBrushSize / 2; brush++)
+            for (int brushW = -main.actualBrushSize / 2; brushW <= main.actualBrushSize / 2; brushW++)
             {
-                for (int i = -semiHeight; i <= semiHeight; i++)
+                for (int brushH = -main.actualBrushSize / 2; brushH <= main.actualBrushSize / 2; brushH++)
                 {
-                    int currentX = centerX + (semiWidth + brush) * sign;
-                    int currentY = centerY + i;
-                    if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
-                    if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
-                }
-            }
-        }
-        //corners
-        for (int cornerX = -1; cornerX <= 1; cornerX += 2)
-        {
-            for (int cornerY = -1; cornerY <= 1; cornerY += 2)
-            {
-                //corner center position
-                int baseX = centerX + (semiWidth + main.actualBrushSize / 2) * cornerX;
-                int baseY = centerY + (semiHeight + main.actualBrushSize / 2) * cornerY;
-                
-                //fill the corner
-                for (int i = 0; i < main.actualBrushSize / 2; i++)
-                {
-                    for (int j = 0; j < main.actualBrushSize / 2; j++)
+                    for (int i = -semiHeight; i <= semiHeight; i++)
                     {
-                        int x = baseX - i * cornerX;
-                        int y = baseY - j * cornerY;
-                        
-                        if (x < 0 || x >= main.large || y < 0 || y >= main.large) continue;
-                        if (main.actualColor != CellColor.Transparent) main.cellsBoard[y, x].color = main.actualColor;
+                        int currentX = centerX + (semiWidth + brushW) * sign;
+                        int currentY = centerY + i + brushH;
+                        if (currentX < 0 || currentX >= main.large || currentY < 0 || currentY >= main.large) continue;
+                        if (main.actualColor != CellColor.Transparent) main.cellsBoard[currentY, currentX].color = main.actualColor;
                     }
                 }
             }
