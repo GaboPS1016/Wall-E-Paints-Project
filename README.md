@@ -21,8 +21,8 @@ Pixel Wall-E Paints es un compilador diseñado para generar formas y dibujos en 
 3. Ejecuta desde el editor o exporta el build.  
 
 ### Opción 2: Descargar ejecutable (para usuarios finales)  
-- Descarga el archivo `.rar` desde [Releases](https://github.com/GaboPS1016/Wall-E-Paints-Project/releases) y descomprímelo.  
-- Ejecuta `PixelWallEPaints.exe`.  
+- Descarga el archivo `Wall-E Paints.rar` y descomprímelo.  
+- Ejecuta `Wall-E Paints.exe`.  
 
 ## 📖 Uso  
 El compilador sigue reglas específicas para generar los dibujos. Consulta el [Informe](/Informe.pdf) (PDF incluido en el repositorio) para aprender la sintaxis de comandos y ejemplos.  
